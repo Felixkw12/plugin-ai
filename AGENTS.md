@@ -68,6 +68,7 @@ Infrastructure dependencies (Docker Compose services):
 - `io.kestra.plugin.ai.provider.Ollama`
 - `io.kestra.plugin.ai.provider.OpenAI`
 - `io.kestra.plugin.ai.provider.OpenRouter`
+- `io.kestra.plugin.ai.provider.Opper`
 - `io.kestra.plugin.ai.provider.WatsonxAI`
 - `io.kestra.plugin.ai.provider.WorkersAI`
 - `io.kestra.plugin.ai.provider.ZhiPuAI`

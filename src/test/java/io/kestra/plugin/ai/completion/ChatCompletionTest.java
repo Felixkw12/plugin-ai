@@ -59,6 +59,7 @@ class ChatCompletionTest extends ContainerTest {
     private final String COHERE_API_KEY = System.getenv("COHERE_API_KEY");
     private final String HUGGING_FACE_API_KEY = System.getenv("HUGGING_FACE_API_KEY");
     private final String OPENROUTER_API_KEY = System.getenv("OPENROUTER_API_KEY");
+    private final String OPPER_API_KEY = System.getenv("OPPER_API_KEY");
     private final String AMAZON_ACCESS_KEY_ID = System.getenv("AWS_ACCESS_KEY_ID");
     private final String AMAZON_SECRET_ACCESS_KEY = System.getenv("AWS_SECRET_ACCESS_KEY");
     private final String AZURE_OPENAI_API_KEY = System.getenv("AZURE_OPENAI_API_KEY");
@@ -1679,6 +1680,44 @@ class ChatCompletionTest extends ContainerTest {
             assertThat(output.getTextOutput(), containsString("John"));
             assertThat(output.getRequestDuration(), notNullValue());
             assertThat(output.getTokenUsage().getOutputTokenCount(), equalTo(10));
+        } catch (RateLimitException e) {
+            abort("Skipped: rate limited or quota exceeded");
+        }
+    }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "OPPER_API_KEY", matches = ".*")
+    void testChatCompletionOpper() throws Exception {
+        RunContext runContext = runContextFactory.of(
+            Map.of(
+                "apiKey", OPPER_API_KEY,
+                "modelName", "mistral-large-2512",
+                "baseUrl", "https://api.opper.ai/v3/compat",
+                "messages", List.of(
+                    ChatMessage.builder().type(ChatMessageType.USER).content("Hello, my name is John").build()
+                )
+            )
+        );
+
+        ChatCompletion task = ChatCompletion.builder()
+            .messages(Property.ofExpression("{{ messages }}"))
+            // Use a low temperature and a fixed seed so the completion would be more deterministic
+            .configuration(ChatConfiguration.builder().temperature(Property.ofValue(0.1)).seed(Property.ofValue(123456789)).build())
+            .provider(
+                Opper.builder()
+                    .type(Opper.class.getName())
+                    .apiKey(Property.ofExpression("{{ apiKey }}"))
+                    .modelName(Property.ofExpression("{{ modelName }}"))
+                    .baseUrl(Property.ofExpression("{{ baseUrl }}"))
+                    .build()
+            )
+            .build();
+
+        try {
+            ChatCompletion.Output output = task.run(runContext);
+            assertThat(output.getTextOutput(), notNullValue());
+            assertThat(output.getTextOutput(), containsString("John"));
+            assertThat(output.getRequestDuration(), notNullValue());
         } catch (RateLimitException e) {
             abort("Skipped: rate limited or quota exceeded");
         }
